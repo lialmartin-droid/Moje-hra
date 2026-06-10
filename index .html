@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Včelařský Tycoon 4.0</title>
+<style>
+:root{
+  --wood:#2b1b10;--wood2:#4a2c16;--gold:#f5b828;--cream:#fff4c7;--text:#fff8e8;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  background:radial-gradient(circle at 76% 8%,#fff7a8 0 44px,transparent 45px),linear-gradient(#72cbff 0%,#e6fbff 42%,#67c45b 43%,#267533 100%);
+  color:var(--text);overflow:hidden;touch-action:none;
+}
+#game{height:100vh;width:100vw;position:relative;overflow:hidden}
+.hud{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  background:rgba(34,21,10,.94);border-bottom:3px solid #6b3f17;
+  padding:6px 8px;display:flex;gap:6px;align-items:center;overflow-x:auto;white-space:nowrap;
+  box-shadow:0 5px 0 rgba(0,0,0,.22)
+}
+.hud .res{
+  background:linear-gradient(#5a3618,#2a1709);border:2px solid #8a5a20;border-radius:12px;
+  padding:6px 8px;font-weight:900;color:#fff3c2;font-size:.84rem;
+}
+button{
+  border:2px solid #5b3108;border-radius:13px;background:linear-gradient(#ffe079,#f59e0b);
+  color:#251400;padding:9px 11px;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #5b3108
+}
+button:active{transform:translateY(3px);box-shadow:0 1px 0 #5b3108}
+button.blue{background:linear-gradient(#8dd7ff,#38bdf8)}
+button.green{background:linear-gradient(#8ef0ae,#22c55e)}
+button.red{background:linear-gradient(#fb7185,#ef4444);color:white}
+.worldWrap{position:absolute;inset:0;top:48px;overflow:hidden;cursor:grab;background:linear-gradient(#7cd3ff 0 35%,#dff8ff 35% 43%,#73cf63 43% 100%)}
+.world{position:absolute;left:50%;top:50%;width:1360px;height:980px;transform-origin:0 0}
+.ground{position:absolute;left:0;right:0;bottom:0;height:720px;background:linear-gradient(#77c85e,#2d843d);border-top:6px solid rgba(255,255,255,.25);border-radius:45% 45% 0 0/10% 10% 0 0}
+.road{position:absolute;background:#b87b3a;border:5px solid #7a461f;box-shadow:inset 0 0 0 5px rgba(255,255,255,.08)}
+.road.r1{left:220px;top:455px;width:910px;height:70px;border-radius:999px}
+.road.r2{left:565px;top:320px;width:80px;height:420px;border-radius:999px}
+.road.r3{left:360px;top:625px;width:560px;height:62px;border-radius:999px;transform:rotate(-8deg)}
+.plot{
+  position:absolute;border:4px solid #5b3108;border-radius:24px;box-shadow:0 8px 0 rgba(0,0,0,.18),inset 0 0 22px rgba(255,255,255,.25);
+  display:grid;place-items:center;text-align:center;color:#2b1600;font-weight:900;cursor:pointer;overflow:hidden;
+}
+.plot .emoji{font-size:44px}.plot small{background:rgba(255,255,255,.6);padding:2px 5px;border-radius:8px}
+.fieldPlot{left:95px;top:600px;width:280px;height:200px;background:linear-gradient(#fde68a,#83bd2d)}
+.flowerPlot{left:890px;top:590px;width:270px;height:190px;background:linear-gradient(#f9a8d4,#8de36b)}
+.waterPlot{left:940px;top:330px;width:195px;height:125px;background:linear-gradient(#7dd3fc,#0284c7);color:white;border-radius:50%;cursor:default}
+.cropStage0{filter:saturate(.55)}.cropStage1{filter:saturate(.9)}.cropStage2{filter:saturate(1.35) brightness(1.08)}
+.building{position:absolute;width:170px;height:170px;cursor:pointer;filter:drop-shadow(0 12px 4px rgba(0,0,0,.25));transition:.15s transform}
+.building:hover{transform:translateY(-6px) scale(1.03)}
+.label{position:absolute;left:50%;bottom:-34px;transform:translateX(-50%);background:rgba(38,22,10,.94);border:2px solid #8a5a20;border-radius:12px;padding:5px 8px;color:#ffe08a;text-align:center;font-weight:900;white-space:nowrap;font-size:.86rem}
+.house{left:150px;top:285px}.apiary{left:510px;top:545px}.honeyhouse{left:495px;top:245px}.waxhouse{left:760px;top:270px}.storage{left:775px;top:500px}.shop{left:265px;top:465px}.coop{left:335px;top:695px}.staff{left:1020px;top:485px}
+.base{position:absolute;left:24px;bottom:18px;width:122px;height:92px;background:#d9862e;border:5px solid #3a1e0c;border-radius:12px}
+.roof{position:absolute;left:9px;bottom:100px;width:150px;height:72px;background:#8b2e13;border:5px solid #3a1e0c;clip-path:polygon(50% 0,100% 85%,0 85%)}
+.door{position:absolute;left:67px;bottom:18px;width:37px;height:55px;background:#3a1e0c;border-radius:17px 17px 3px 3px}
+.window{position:absolute;left:35px;bottom:55px;width:28px;height:28px;background:#bdefff;border:4px solid #3a1e0c;border-radius:6px}
+.hiveTiny{position:absolute;width:46px;height:45px;background:#f1a51d;border:4px solid #3a1e0c;border-radius:7px}.apiary .h1{left:20px;top:78px}.apiary .h2{left:70px;top:55px}.apiary .h3{left:120px;top:86px}
+.hiveTiny:before{content:"";position:absolute;left:-4px;right:-4px;top:13px;border-top:4px solid #8a4d0d}.hiveTiny:after{content:"";position:absolute;left:13px;bottom:3px;width:16px;height:12px;background:#1d1308;border-radius:10px 10px 2px 2px}
+.machine{position:absolute;left:52px;top:65px;width:70px;height:82px;background:#d1d5db;border:5px solid #3a1e0c;border-radius:20px}.machine:before{content:"";position:absolute;left:11px;top:-34px;width:40px;height:35px;background:#cbd5e1;border:5px solid #3a1e0c;border-radius:50%}
+.spin{animation:spin 1.2s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.candle{position:absolute;left:65px;top:58px;width:32px;height:90px;background:#fff4b8;border:5px solid #3a1e0c;border-radius:14px}.candle:before{content:"🔥";position:absolute;left:-7px;top:-36px;font-size:34px}
+.crate{position:absolute;left:38px;top:72px;width:92px;height:70px;background:#a16207;border:5px solid #3a1e0c;border-radius:9px}.crate:before,.crate:after{content:"";position:absolute;inset:0;border-top:5px solid #3a1e0c;top:30px}.crate:after{border-top:0;border-left:5px solid #3a1e0c;left:42px;top:0}
+.cart{position:absolute;left:25px;top:78px;width:120px;height:58px;background:#ef4444;border:5px solid #3a1e0c;border-radius:12px}.cart:before,.cart:after{content:"";position:absolute;bottom:-26px;width:28px;height:28px;background:#111;border-radius:50%;border:4px solid #3a1e0c}.cart:before{left:15px}.cart:after{right:15px}
+.chickenHouse{position:absolute;left:30px;top:55px;width:115px;height:90px;background:#b45309;border:5px solid #3a1e0c;border-radius:12px}.chickenHouse:before{content:"";position:absolute;left:-10px;top:-45px;width:130px;height:60px;background:#7c2d12;border:5px solid #3a1e0c;clip-path:polygon(50% 0,100% 85%,0 85%)}.chickenHouse:after{content:"🐔";position:absolute;left:34px;top:24px;font-size:42px}
+.staffIcon{position:absolute;left:48px;top:58px;font-size:66px}
+.bee{position:absolute;width:22px;height:15px;background:#facc15;border:2px solid #2a1600;border-radius:50%;animation:fly 5s infinite ease-in-out;z-index:10}.bee:before{content:"";position:absolute;left:5px;top:-8px;width:10px;height:8px;background:rgba(255,255,255,.8);border-radius:50%}.bee:after{content:"";position:absolute;right:-5px;top:4px;border-left:6px solid #2a1600;border-top:3px solid transparent;border-bottom:3px solid transparent}
+@keyframes fly{0%,100%{transform:translate(0,0)}25%{transform:translate(22px,-18px)}50%{transform:translate(-18px,12px)}75%{transform:translate(13px,20px)}}
+.bee.b1{left:520px;top:510px}.bee.b2{left:650px;top:455px;animation-delay:.8s}.bee.b3{left:810px;top:540px;animation-delay:1.5s}.bee.b4{left:400px;top:600px;animation-delay:2.2s}
+.animal{position:absolute;font-size:34px;z-index:12;filter:drop-shadow(0 5px 2px rgba(0,0,0,.25));animation:wander 5s infinite ease-in-out}
+@keyframes wander{0%,100%{transform:translate(0,0)}35%{transform:translate(13px,-7px)}70%{transform:translate(-9px,8px)}}
+.worker{position:absolute;font-size:38px;z-index:12;filter:drop-shadow(0 5px 2px rgba(0,0,0,.25));animation:workerMove 6s infinite ease-in-out}
+@keyframes workerMove{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,12px)}}
+.panel{position:fixed;left:10px;right:10px;bottom:10px;z-index:60;background:linear-gradient(#3b2818,#1f140c);border:4px solid #7b4b1e;border-radius:22px;padding:12px;max-height:60vh;overflow:auto;box-shadow:0 9px 0 rgba(0,0,0,.25);display:none}
+.panel.active{display:block}.panel h2{margin:0 0 8px;color:#ffe08a}
+.grid{display:grid;grid-template-columns:1fr;gap:10px}
+.card{background:linear-gradient(#fff5cf,#e8b760);color:#2b1600;border:4px solid #6b3f17;border-radius:18px;padding:11px;display:flex;gap:10px;align-items:center}
+.card .ico{font-size:42px;min-width:48px;text-align:center}.card h3{margin:0}.card p{margin:4px 0 8px;color:#5a3518}
+.row{display:flex;gap:8px;flex-wrap:wrap}input,select{width:100%;padding:11px;border:3px solid #7b4b1e;border-radius:14px;background:#fff8df;color:#2b1600;font-weight:800;font-size:16px;touch-action:manipulation}
+.small{font-size:.85rem;color:#f1d9a6}.log{max-height:190px;overflow:auto;background:rgba(0,0,0,.2);border-radius:12px;padding:6px}.log div{padding:6px;border-bottom:1px solid rgba(255,255,255,.12)}
+.close{position:absolute;right:12px;top:10px}.zoomCtl{position:fixed;right:10px;top:58px;z-index:55;display:grid;gap:7px}
+.questDone{text-decoration:line-through;opacity:.65}.bad{color:#b91c1c;font-weight:900}.good{color:#166534;font-weight:900}
+@media(min-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.panel{left:auto;width:600px;right:14px;bottom:14px}}
+@media(max-width:520px){.hud{font-size:.78rem}.hud .res{padding:5px 7px}.building{transform:scale(.9)}.building:hover{transform:scale(.9) translateY(-6px)}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div class="hud">
+    <div class="res">💰 <span id="money"></span></div>
+    <div class="res">🍯 <span id="honey"></span></div>
+    <div class="res">🫙 <span id="jars"></span></div>
+    <div class="res">🕯️ <span id="wax"></span></div>
+    <div class="res">🥚 <span id="eggs"></span></div>
+    <div class="res">📅 <span id="day"></span></div>
+    <div class="res">🌦️ <span id="weather"></span></div>
+    <button class="blue" onclick="openPanel('stats')">📊</button>
+  </div>
+  <div class="zoomCtl"><button onclick="zoomAt(1.15)">+</button><button onclick="zoomAt(.85)">−</button><button class="blue" onclick="homeView()">⌂</button></div>
+  <div class="worldWrap" id="wrap">
+    <div class="world" id="world">
+      <div class="ground"></div><div class="road r1"></div><div class="road r2"></div><div class="road r3"></div>
+      <div class="plot fieldPlot" id="fieldPlot" onclick="openPanel('fields')"><div><div class="emoji" id="fieldEmoji">🌾</div>Medonosné pole<br><small id="fieldLevel"></small></div></div>
+      <div class="plot flowerPlot" id="flowerPlot" onclick="openPanel('fields')"><div><div class="emoji" id="flowerEmoji">🌸</div>Květinová louka<br><small id="flowerLevel"></small></div></div>
+      <div class="plot waterPlot"><div><div class="emoji">💧</div>Napajedlo</div></div>
+      <div class="building house" onclick="openPanel('home')"><div class="roof"></div><div class="base"></div><div class="door"></div><div class="window"></div><div class="label">🏠 Dům</div></div>
+      <div class="building shop" onclick="openPanel('shop')"><div class="cart"></div><div class="label">🛒 Obchod</div></div>
+      <div class="building apiary" onclick="openPanel('apiary')"><div class="hiveTiny h1"></div><div class="hiveTiny h2"></div><div class="hiveTiny h3"></div><div class="label">🐝 Včelnice</div></div>
+      <div class="building honeyhouse" onclick="openPanel('honeyhouse')"><div class="roof"></div><div class="base"></div><div class="machine" id="extractorAnim"></div><div class="label">⚙️ Medárna</div></div>
+      <div class="building waxhouse" onclick="openPanel('waxhouse')"><div class="roof"></div><div class="base"></div><div class="candle"></div><div class="label">🕯️ Voskárna</div></div>
+      <div class="building storage" onclick="openPanel('storage')"><div class="crate"></div><div class="label">📦 Sklad</div></div>
+      <div class="building coop" onclick="openPanel('coop')"><div class="chickenHouse"></div><div class="label">🐔 Farma</div></div>
+      <div class="building staff" onclick="openPanel('staff')"><div class="base"></div><div class="staffIcon">👨‍🌾</div><div class="label">👨‍🌾 Zaměstnanci</div></div>
+      <div class="bee b1"></div><div class="bee b2"></div><div class="bee b3"></div><div class="bee b4"></div>
+      <div id="animalSprites"></div><div id="workerSprites"></div>
+    </div>
+  </div>
+  <div class="panel" id="panel"><button class="close red" onclick="closePanel()">×</button><div id="panelContent"></div></div>
+</div>
+<script>
+const weatherTypes=[
+ {n:"Slunečno",ico:"☀️",m:1.25,h:0,field:0},{n:"Mírně",ico:"🌤️",m:1,h:.05,field:.08},{n:"Déšť",ico:"🌧️",m:.65,h:.1,field:.22},
+ {n:"Chladno",ico:"🥶",m:.45,h:-.05,field:.02},{n:"Vedro",ico:"🔥",m:.8,h:-.18,field:-.12},{n:"Vítr",ico:"🌬️",m:.55,h:-.1,field:-.04}
+];
+const seasons=["Jaro","Léto","Podzim","Zima"];
+const crops={
+ clover:{name:"Jetel",emoji:"☘️",cost:180,grow:7,nectar:.10,price:1,type:"Květový med"},
+ mustard:{name:"Hořčice",emoji:"🌼",cost:230,grow:6,nectar:.15,price:1,type:"Květový med"},
+ phacelia:{name:"Svazenka",emoji:"💜",cost:360,grow:10,nectar:.25,price:1.12,type:"Svazenkový med"},
+ sunflower:{name:"Slunečnice",emoji:"🌻",cost:520,grow:13,nectar:.30,price:1.16,type:"Slunečnicový med"},
+ buckwheat:{name:"Pohanka",emoji:"🌾",cost:480,grow:9,nectar:.12,price:1.35,type:"Pohankový med"}
+};
+let state=load()||{
+ money:4200, day:1, honey:0, wax:0, candles:0, jarsEmpty:20, jarsFilled:0, food:20,
+ honeyTypes:{flower:0,phacelia:0,sunflower:0,buckwheat:0},
+ eggs:0, hens:3, ducks:0, goats:0, sheep:0, henFood:12, manure:0, milk:0, wool:0,
+ field:1, flowers:1, water:1, marketing:0, xp:0,
+ cropField:{crop:"clover",stage:1,progress:4}, cropFlower:{crop:"phacelia",stage:1,progress:5},
+ cappedFrames:0, oldComb:0,
+ totalSold:0,totalHoney:0,totalWax:0,totalCandles:0,totalEggs:0,totalEggsSold:0,totalMilk:0,totalWool:0,
+ staff:{beekeeper:0,farmer:0,seller:0,tractor:0},
+ equipment:{extractor:100,waxPot:0,candleMold:0,uncapTable:100,jarsTool:0},
+ hives:[{name:"Úl 1",colony:true,strength:55,health:80,stores:24,varroa:12,swarm:8,honey:0,frames:0,oldComb:0,risk:0,honeyKind:"flower"}],
+ quests:{honey20:false,eggs50:false,candles20:false,hives5:false,firstTreatment:false,firstSpecialHoney:false,firstWorker:false},
+ log:[]
+};
+let weather=weatherTypes[1], zoom=.72, panX=-470, panY=-345;
+let dragging=false,startX=0,startY=0,startPanX=0,startPanY=0,lastPanel="home";
+
+function migrate(){
+ if(!state.honeyTypes)state.honeyTypes={flower:0,phacelia:0,sunflower:0,buckwheat:0};
+ ["flower","phacelia","sunflower","buckwheat"].forEach(k=>{if(state.honeyTypes[k]===undefined)state.honeyTypes[k]=0});
+ if(!state.cropField)state.cropField={crop:"clover",stage:1,progress:4};
+ if(!state.cropFlower)state.cropFlower={crop:"phacelia",stage:1,progress:5};
+ if(!state.staff)state.staff={beekeeper:0,farmer:0,seller:0,tractor:0};
+ ["beekeeper","farmer","seller","tractor"].forEach(k=>{if(state.staff[k]===undefined)state.staff[k]=0});
+ if(state.jars!==undefined && state.jarsEmpty===undefined){state.jarsEmpty=state.jars;state.jarsFilled=0}
+ if(state.jarsEmpty===undefined)state.jarsEmpty=20;if(state.jarsFilled===undefined)state.jarsFilled=0;
+ if(state.totalEggsSold===undefined)state.totalEggsSold=0;if(state.milk===undefined)state.milk=0;if(state.wool===undefined)state.wool=0;
+ if(!state.quests)state.quests={};["honey20","eggs50","candles20","hives5","firstTreatment","firstSpecialHoney","firstWorker"].forEach(q=>{if(state.quests[q]===undefined)state.quests[q]=false});
+ state.hives.forEach(h=>{if(h.honeyKind===undefined)h.honeyKind="flower";if(h.oldComb===undefined)h.oldComb=0;if(h.risk===undefined)h.risk=0});
+}
+migrate();
+
+function save(){localStorage.setItem("beeTycoon4",JSON.stringify(state))}
+function load(){try{return JSON.parse(localStorage.getItem("beeTycoon4"))||JSON.parse(localStorage.getItem("beeTycoon3"))||JSON.parse(localStorage.getItem("beeTycoon2"))}catch(e){return null}}
+function money(v){return Math.round(v).toLocaleString("cs-CZ")+" Kč"}
+function season(){return seasons[Math.floor(((state.day-1)%120)/30)]}
+function log(t){state.log.unshift("Den "+state.day+": "+t);state.log=state.log.slice(0,120)}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function cData(plot){return crops[plot.crop]||crops.clover}
+function cropReady(plot){return plot.stage>=2}
+function dominantCrop(){
+ let cf=cData(state.cropField), cl=cData(state.cropFlower);
+ let chosen=(cropReady(state.cropFlower)&&cl.nectar>=cf.nectar)?state.cropFlower:state.cropField;
+ return cData(chosen);
+}
+function mapBonus(){
+ let bonus=1+state.field*.06+state.flowers*.04;
+ if(cropReady(state.cropField)) bonus+=cData(state.cropField).nectar;
+ if(cropReady(state.cropFlower)) bonus+=cData(state.cropFlower).nectar;
+ return bonus;
+}
+function healthBonus(){return state.water*.08}
+function baseHoneyPrice(kind){
+ const base=120+state.marketing*10+(season()=="Zima"?15:0)+state.staff.seller*4;
+ if(kind=="phacelia")return Math.round(base*1.12);
+ if(kind=="sunflower")return Math.round(base*1.16);
+ if(kind=="buckwheat")return Math.round(base*1.35);
+ return base;
+}
+function jarPrice(kind){return Math.round(baseHoneyPrice(kind)*1.55)}
+function waxPrice(){return 150+state.marketing*8}
+function candlePrice(){return 40+state.marketing*4+(season()=="Zima"?8:0)+state.staff.seller*2}
+function eggPrice(){return 6+state.marketing}
+function eq(k){return state.equipment[k]||0}
+function wear(k,v){if(state.equipment[k]>0){state.equipment[k]=clamp(state.equipment[k]-v,0,100);if(state.equipment[k]==0)log("Vybavení se rozbilo: "+k)}}
+function levelName(){let h=state.hives.filter(x=>x.colony).length;if(h>=20)return"👑 Medový magnát";if(h>=10)return"💎 Profesionální včelař";if(h>=5)return"🥇 Místní včelař";if(state.xp>=1000)return"🥈 Šikovný hospodář";return"🥉 Začátečník"}
+function updateTransform(){world.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`}
+function zoomAt(f){zoom=clamp(zoom*f,.38,1.4);updateTransform()}
+function homeView(){zoom=.72;panX=-470;panY=-345;updateTransform()}
+function render(){
+ document.getElementById("money").textContent=money(state.money);
+ document.getElementById("honey").textContent=totalHoneyStock().toFixed(1)+" kg";
+ document.getElementById("jars").textContent=state.jarsFilled+" ks";
+ document.getElementById("wax").textContent=state.wax.toFixed(1)+" kg";
+ document.getElementById("eggs").textContent=state.eggs+" ks";
+ document.getElementById("day").textContent=state.day;
+ document.getElementById("weather").textContent=weather.ico+" "+weather.n;
+ updateCropVisual("field",state.cropField); updateCropVisual("flower",state.cropFlower);
+ document.getElementById("animalSprites").innerHTML=
+   Array.from({length:Math.min(state.hens,6)},(_,i)=>`<div class="animal" style="left:${355+i*26}px;top:${790+(i%2)*18}px">🐔</div>`).join("")+
+   Array.from({length:Math.min(state.ducks,4)},(_,i)=>`<div class="animal" style="left:${930+i*24}px;top:${420+i*14}px">🦆</div>`).join("")+
+   Array.from({length:Math.min(state.goats,3)},(_,i)=>`<div class="animal" style="left:${230+i*36}px;top:${725+i*13}px">🐐</div>`).join("")+
+   Array.from({length:Math.min(state.sheep,3)},(_,i)=>`<div class="animal" style="left:${300+i*40}px;top:${755+i*11}px">🐑</div>`).join("");
+ const workers=state.staff.beekeeper+state.staff.farmer+state.staff.seller+state.staff.tractor;
+ document.getElementById("workerSprites").innerHTML=Array.from({length:Math.min(workers,4)},(_,i)=>`<div class="worker" style="left:${600+i*38}px;top:${480+i*18}px">👨‍🌾</div>`).join("");
+ checkQuests(); save();
+}
+function updateCropVisual(which,plot){
+ const data=cData(plot), el=document.getElementById(which+"Plot"), emoji=document.getElementById(which+"Emoji"), label=document.getElementById(which+"Level");
+ el.classList.remove("cropStage0","cropStage1","cropStage2"); el.classList.add("cropStage"+plot.stage);
+ emoji.textContent=data.emoji;
+ const stage=plot.stage==0?"zaseto":plot.stage==1?"roste":"kvete";
+ label.textContent=`${data.name} · ${stage} · ${Math.round(plot.progress)}/${data.grow}`;
+}
+function totalHoneyStock(){return Object.values(state.honeyTypes).reduce((a,b)=>a+b,0)}
+function openPanel(type){
+ lastPanel=type; const p=document.getElementById("panel"), c=document.getElementById("panelContent"); p.classList.add("active");
+ const map={home:homeHTML,apiary:apiaryHTML,honeyhouse:honeyhouseHTML,waxhouse:waxhouseHTML,storage:storageHTML,shop:shopHTML,coop:coopHTML,stats:statsHTML,fields:fieldsHTML,staff:staffHTML};
+ c.innerHTML=(map[type]||homeHTML)();
+}
+function closePanel(){panel.classList.remove("active")}
+function homeHTML(){return `<h2>🏠 Dům včelaře</h2>
+<p class="small">Úroveň: <b>${levelName()}</b> · XP: <b>${state.xp}</b></p>
+<p class="small">Verze 4.0: pole a louka mají konkrétní plodiny, které rostou, kvetou, mění snůšku a určují druh medu.</p>
+<div class="row"><button onclick="nextDay()">▶ Další den</button><button class="blue" onclick="nextWeek()">⏩ 7 dní</button></div><h3>🎯 Úkoly</h3>${questHTML()}`}
+function fieldsHTML(){
+ return `<h2>🌸 Pole a květinová louka</h2><p class="small">Když plodina kvete, zvyšuje snůšku. Převládající kvetoucí plodina určuje druh medu a jeho cenu.</p>
+ <div class="grid">${fieldCard("Medonosné pole","cropField")}${fieldCard("Květinová louka","cropFlower")}</div>
+ <div class="card"><div class="ico">🍯</div><div><h3>Aktuální vliv</h3><p>Bonus snůšky: <b>×${mapBonus().toFixed(2)}</b><br>Převládající med: <b>${dominantCrop().type}</b><br>Cena tohoto medu: <b>${baseHoneyPrice(kindKeyFromType(dominantCrop().type))} Kč/kg</b></p></div></div>`;
+}
+function fieldCard(title,key){
+ const plot=state[key], data=cData(plot);
+ return `<div class="card"><div class="ico">${data.emoji}</div><div><h3>${title}</h3><p>Plodina: <b>${data.name}</b><br>Stav: <b>${plot.stage==0?"zaseto":plot.stage==1?"roste":"kvete"}</b> (${Math.round(plot.progress)}/${data.grow})<br>Bonus: <b>+${Math.round(data.nectar*100)} %</b>, typ: <b>${data.type}</b></p>
+ <select id="${key}Select">${Object.entries(crops).map(([id,c])=>`<option value="${id}" ${plot.crop==id?"selected":""}>${c.emoji} ${c.name} — ${c.cost} Kč</option>`).join("")}</select><br><br>
+ <button onclick="sowCrop('${key}')">Zasít vybranou plodinu</button></div></div>`;
+}
+function kindKeyFromType(type){if(type.includes("Svazenk"))return"phacelia";if(type.includes("Sluneč"))return"sunflower";if(type.includes("Pohank"))return"buckwheat";return"flower"}
+function kindName(k){return {flower:"Květový",phacelia:"Svazenkový",sunflower:"Slunečnicový",buckwheat:"Pohankový"}[k]||"Květový"}
+function apiaryHTML(){return `<h2>🐝 Včelnice</h2><div class="grid">
+${state.hives.map((h,i)=>`<div class="card"><div class="ico">🏠</div><div><h3>${h.name}</h3>
+<p>${h.colony?`Síla ${Math.round(h.strength)} %, zdraví ${Math.round(h.health)} %, varroa ${Math.round(h.varroa)} %<br>${riskText(h)}<br>Med v úlu: ${h.honey.toFixed(1)} kg (${kindName(h.honeyKind)}) · Hotové rámky: ${h.frames.toFixed(1)}/12`:"Prázdný úl"}</p>
+<div class="row">${h.colony?`<button onclick="inspectHive(${i})">🔍 Kontrola</button><button class="green" onclick="feedHive(${i})">🍚 Nakrmit</button><button onclick="treatHive(${i})">🧪 Léčit</button><button class="green" onclick="strengthenHive(${i})">💪 Posílit</button><button class="blue" onclick="moveFrames(${i})">📦 Odvézt rámky</button>`:`<button onclick="buyColony(${i})">🐝 Osadit oddělkem</button>`}</div></div></div>`).join("")}</div>`}
+function riskText(h){let parts=[];if(h.varroa>40)parts.push("varroa");if(h.stores<8)parts.push("málo zásob");if(h.health<45)parts.push("špatné zdraví");if(h.strength<30)parts.push("slabé včelstvo");let cls=h.risk>50?"bad":h.risk<20?"good":"";return `Riziko úhynu: <span class="${cls}">${Math.round(h.risk)} %</span>${parts.length?" — důvod: "+parts.join(", "):" — stav v pořádku"}`}
+function honeyhouseHTML(){return `<h2>⚙️ Medárna</h2><div class="grid">
+<div class="card"><div class="ico">🍯</div><div><h3>Zpracování rámků</h3><p>Rámky v medárně: <b>${state.cappedFrames.toFixed(1)}</b><br>Medomet: ${Math.round(eq("extractor"))}% · Odvíčkovací stůl: ${Math.round(eq("uncapTable"))}%</p><button onclick="extractHoney()">⚙️ Odvíčkovat a vytočit</button></div></div>
+<div class="card"><div class="ico">🫙</div><div><h3>Stáčení do sklenic</h3><p>Celkem med: ${totalHoneyStock().toFixed(1)} kg<br>Prázdné sklenice: ${state.jarsEmpty} ks · Plné sklenice: ${state.jarsFilled} ks</p><select id="jarHoneyKind">${honeyOptions()}</select><br><br><button onclick="fillJars()">Naplnit 10 sklenic</button></div></div>
+</div>`}
+function honeyOptions(){return ["flower","phacelia","sunflower","buckwheat"].map(k=>`<option value="${k}">${kindName(k)} med — ${state.honeyTypes[k].toFixed(1)} kg</option>`).join("")}
+function waxhouseHTML(){return `<h2>🕯️ Voskárna</h2><div class="grid"><div class="card"><div class="ico">🫕</div><div><h3>Tavení vosku</h3><p>Staré souše: ${state.oldComb.toFixed(1)}<br>Tavicí nádoba: ${Math.round(eq("waxPot"))}%</p><button onclick="meltWax()">Vytavit vosk</button></div></div><div class="card"><div class="ico">🔥</div><div><h3>Výroba svíček</h3><p>Vosk: ${state.wax.toFixed(1)} kg<br>Formy: ${Math.round(eq("candleMold"))}%</p><button onclick="makeCandles()">Vyrobit 8 svíček</button></div></div></div>`}
+function storageHTML(){return `<h2>📦 Sklad a prodej</h2><div class="grid">
+${["flower","phacelia","sunflower","buckwheat"].map(k=>sellCard("🍯",kindName(k)+" med",`${state.honeyTypes[k].toFixed(1)} kg · ${baseHoneyPrice(k)} Kč/kg`,"sellHoneyKg"+k,"kg medu",`sellHoneyKind('${k}')`)).join("")}
+${sellCard("🫙","Sklenice medu",`${state.jarsFilled} ks · ${jarPrice("flower")}+ Kč/ks`,"sellJarsCount","počet sklenic","sellJars()")}
+${sellCard("🕯️","Vosk",`${state.wax.toFixed(1)} kg · ${waxPrice()} Kč/kg`,"sellWaxKg","kg vosku","sellWax()")}
+${sellCard("🔥","Svíčky",`${state.candles} ks · ${candlePrice()} Kč/ks`,"sellCandlesCount","počet svíček","sellCandles()")}
+${sellCard("🥚","Vejce",`${state.eggs} ks · ${eggPrice()} Kč/ks`,"sellEggsCount","počet vajec","sellEggs()")}
+${sellCard("🥛","Mléko",`${state.milk.toFixed(1)} l · 22 Kč/l`,"sellMilkLiters","litry mléka","sellMilk()")}
+${sellCard("🧶","Vlna",`${state.wool.toFixed(1)} kg · 90 Kč/kg`,"sellWoolKg","kg vlny","sellWool()")}</div>`}
+function sellCard(i,t,p,id,ph,fn){return `<div class="card"><div class="ico">${i}</div><div><h3>${t}</h3><p>${p}</p><input id="${id}" type="number" inputmode="decimal" pattern="[0-9]*" placeholder="${ph}"><br><br><button onclick="${fn}">Prodat</button></div></div>`}
+function coopHTML(){return `<h2>🐔 Chov zvířat</h2><p class="small">Zvířata jsou vidět přímo na mapě. Produkují vejce, mléko, vlnu a hnůj na pole.</p><div class="grid">
+${animalCard("🐔","Slepice",`Slepice: <b>${state.hens}</b><br>Vejce: <b>${state.eggs}</b><br>Krmivo: <b>${state.henFood}</b>`,"buyHen()","Koupit slepici")}
+${animalCard("🦆","Kachny",`Kachny: <b>${state.ducks}</b><br>Dávají vejce navíc.`,"buyDuck()","Koupit kachnu")}
+${animalCard("🐐","Kozy",`Kozy: <b>${state.goats}</b><br>Mléko: <b>${state.milk.toFixed(1)} l</b>`,"buyGoat()","Koupit kozu")}
+${animalCard("🐑","Ovce",`Ovce: <b>${state.sheep}</b><br>Vlna: <b>${state.wool.toFixed(1)} kg</b>`,"buySheep()","Koupit ovci")}
+<div class="card"><div class="ico">🌱</div><div><h3>Hnůj</h3><p>Hnůj: <b>${state.manure.toFixed(1)}</b><br>10 hnoje zlepší medonosné pole.</p><div class="row"><button onclick="useManure()">Použít hnůj</button><button class="green" onclick="buyHenFood()">Koupit krmivo</button></div></div></div></div>`}
+function animalCard(i,t,p,fn,b){return `<div class="card"><div class="ico">${i}</div><div><h3>${t}</h3><p>${p}</p><button onclick="${fn}">${b}</button></div></div>`}
+function staffHTML(){return `<h2>👨‍🌾 Zaměstnanci</h2><p class="small">Každý typ zaměstnance má jinou roli. Cena za každého nového zaměstnance stejného typu roste.</p><div class="grid">
+${staffCard("🐝","Včelař",state.staff.beekeeper,"Snižuje riziko úhynu a zlepšuje zdraví úlů.","beekeeper")}
+${staffCard("🚜","Farmář",state.staff.farmer,"Zrychluje růst polí a zvyšuje produkci zvířat.","farmer")}
+${staffCard("🏪","Prodavač",state.staff.seller,"Zvyšuje prodejní cenu medu a výrobků.","seller")}
+${staffCard("🌾","Traktorista",state.staff.tractor,"Zrychluje růst plodin a snižuje cenu setí.","tractor")}</div>`}
+function staffCard(i,t,n,d,k){return `<div class="card"><div class="ico">${i}</div><div><h3>${t}: ${n}</h3><p>${d}<br>Cena: <b>${staffPrice(k)} Kč</b></p><button onclick="hireStaff('${k}')">Najmout</button></div></div>`}
+function shopHTML(){return `<h2>🛒 Obchod</h2><div class="grid">
+${shopCard("🏠","Nový úl","Další místo pro včelstvo.","600 Kč","buyHive()")}
+${shopCard("🐝","Oddělek","Osadí prázdný úl.","800 Kč","buyAnyColony()")}
+${shopCard("🍚","Krmivo pro včely","+10 zásob.","180 Kč","buyFood()")}
+${shopCard("⚙️","Medomet","Oprava/výměna medometu.","1600 Kč","buyEq('extractor',1600)")}
+${shopCard("📋","Odvíčkovací stůl","Oprava/výměna stolu.","800 Kč","buyEq('uncapTable',800)")}
+${shopCard("🫕","Tavicí nádoba","Nutná pro vosk.","300 Kč","buyEq('waxPot',300)")}
+${shopCard("🕯️","Formy na svíčky","Nutné pro výrobu svíček.","400 Kč","buyEq('candleMold',400)")}
+${shopCard("🫙","Prázdné sklenice","+20 prázdných sklenic.","300 Kč","buyEmptyJars()")}
+${shopCard("💧","Lepší napajedlo","Lepší zdraví včel.","400 Kč","upgradeWater()")}
+${shopCard("📣","Marketing","Vyšší prodejní ceny.","1200 Kč","buyMarketing()")}</div>`}
+function shopCard(i,t,d,p,fn){return `<div class="card"><div class="ico">${i}</div><div><h3>${t}</h3><p>${d}</p><button onclick="${fn}">${p}</button></div></div>`}
+function statsHTML(){return `<h2>📊 Přehled</h2>
+<p>Úroveň: <b>${levelName()}</b> · XP: <b>${state.xp}</b></p>
+<p>Sezóna: <b>${season()}</b> · Bonus snůšky: <b>×${mapBonus().toFixed(2)}</b> · Převládající med: <b>${dominantCrop().type}</b></p>
+<p>Zaměstnanci: včelaři <b>${state.staff.beekeeper}</b>, farmáři <b>${state.staff.farmer}</b>, prodavači <b>${state.staff.seller}</b>, traktoristé <b>${state.staff.tractor}</b></p>
+<p>Celkem vytočeno: <b>${state.totalHoney.toFixed(1)} kg</b><br>Celkem vosku: <b>${state.totalWax.toFixed(1)} kg</b><br>Vyrobeno svíček: <b>${state.totalCandles}</b><br>Prodáno vajec: <b>${state.totalEggsSold||0}</b><br>Celkem prodáno: <b>${money(state.totalSold)}</b></p>
+<h3>🎯 Úkoly</h3>${questHTML()}<div class="row"><button class="blue" onclick="exportSave()">Export JSON</button><button class="red" onclick="resetGame()">Nová hra</button></div><h3>Události</h3><div class="log">${state.log.map(x=>`<div>${x}</div>`).join("")}</div>`}
+function questHTML(){return `<div class="card"><div class="ico">🎯</div><div>
+<p class="${state.quests.honey20?'questDone':''}">Vytoč 20 kg medu — odměna 800 Kč</p>
+<p class="${state.quests.firstSpecialHoney?'questDone':''}">Vytoč první speciální med — odměna 700 Kč</p>
+<p class="${state.quests.eggs50?'questDone':''}">Prodej 50 vajec (${state.totalEggsSold||0}/50) — odměna 500 Kč</p>
+<p class="${state.quests.candles20?'questDone':''}">Vyrob 20 svíček — odměna 600 Kč</p>
+<p class="${state.quests.hives5?'questDone':''}">Vlastni 5 osazených úlů — odměna 1500 Kč</p>
+<p class="${state.quests.firstWorker?'questDone':''}">Najmi prvního zaměstnance — odměna 500 Kč</p>
+</div></div>`}
+
+function nextDay(){
+ state.day++; weather=weatherTypes[Math.floor(Math.random()*weatherTypes.length)];
+ growCrop(state.cropField); growCrop(state.cropFlower);
+ const s=season();
+ for(const h of state.hives){
+  if(!h.colony) continue;
+  let sm=s=="Jaro"?1.15:s=="Léto"?1.45:s=="Podzim"?.35:.03;
+  let prod=(h.strength/100)*weather.m*mapBonus()*sm*1.15;
+  h.honey=clamp(h.honey+prod,0,40); h.frames=clamp(h.frames+prod*.32,0,12); h.honeyKind=kindKeyFromType(dominantCrop().type);
+  h.oldComb+=prod*.022; h.stores+=prod*.22;
+  h.varroa+=s=="Léto"?.18:s=="Podzim"?.28:.10; h.swarm+=s=="Jaro"||s=="Léto"?.55:.1;
+  h.health+=weather.h+healthBonus()+state.staff.beekeeper*.08; h.health-=h.varroa>45?.8:.15;
+  if(s=="Zima"){h.stores-=1.2;h.strength-=h.stores<5?1.5:.35}else h.strength+=weather.m>.8?.25:-.1;
+  if(h.stores<8)h.health-=.9;
+  if(h.varroa>65)h.risk+=1.2; if(h.health<35)h.risk+=1.1; if(h.stores<3)h.risk+=1.8; if(h.strength<20)h.risk+=.8;
+  if(h.health>70&&h.stores>15&&h.varroa<35)h.risk-=.55;
+  h.risk=clamp(h.risk-state.staff.beekeeper*.45,0,95);
+  if(h.swarm>80&&Math.random()<.08){h.strength*=.65;h.swarm=25;log(h.name+" se vyrojil.")}
+  if(Math.random()*100<h.risk*.035){h.colony=false;log(h.name+" uhynul.")}
+  h.strength=clamp(h.strength,0,100);h.health=clamp(h.health,0,100);h.varroa=clamp(h.varroa,0,100);h.swarm=clamp(h.swarm,0,100);h.stores=clamp(h.stores,0,120);
+ }
+ animalProduction();
+ Object.keys(state.equipment).forEach(k=>wear(k,.05));
+ render(); if(panel.classList.contains("active")) openPanel(lastPanel);
+}
+function growCrop(plot){
+ let data=cData(plot); if(plot.stage>=2)return;
+ let speed=1+state.staff.farmer*.12+state.staff.tractor*.18+weather.field;
+ plot.progress=clamp(plot.progress+speed,0,data.grow);
+ plot.stage=plot.progress<=0?0:plot.progress>=data.grow?2:1;
+}
+function animalProduction(){
+ if(state.hens>0||state.ducks>0||state.goats>0||state.sheep>0){
+  let hungry=state.hens+state.ducks, fed=Math.min(hungry,state.henFood); state.henFood-=fed;
+  let henFed=Math.min(state.hens,fed), duckFed=Math.max(0,fed-henFed);
+  let animalBoost=1+state.staff.farmer*.08;
+  let eggs=Math.floor((henFed*(.65+Math.random()*.45)+duckFed*(.35+Math.random()*.25))*animalBoost);
+  state.eggs+=eggs;state.totalEggs+=eggs;
+  let milk=state.goats*.8*animalBoost, wool=state.sheep*.04*animalBoost;
+  state.milk+=milk;state.wool+=wool;state.totalMilk+=milk;state.totalWool+=wool;
+  state.manure+=fed*.15+state.goats*.2+state.sheep*.15;
+ }
+}
+function nextWeek(){for(let i=0;i<7;i++)nextDay()}
+function sowCrop(key){
+ const sel=document.getElementById(key+"Select").value, data=crops[sel];
+ let cost=Math.round(data.cost*(1-state.staff.tractor*.04)); cost=Math.max(cost,Math.round(data.cost*.65));
+ if(state.money<cost)return alert("Setí stojí "+cost+" Kč.");
+ state.money-=cost; state[key]={crop:sel,stage:0,progress:0}; log("Zaseto: "+data.name+"."); render(); openPanel("fields");
+}
+function inspectHive(i){let h=state.hives[i];h.health=clamp(h.health+3+state.staff.beekeeper,0,100);h.swarm=clamp(h.swarm-4,0,100);h.risk=clamp(h.risk-1-state.staff.beekeeper,0,95);log("Provedena kontrola: "+h.name);state.xp+=5;render();openPanel("apiary")}
+function feedHive(i){if(state.food<1)return alert("Nemáš krmivo.");let h=state.hives[i];state.food--;h.stores+=10;h.risk=clamp(h.risk-2,0,95);log("Nakrmil jsi "+h.name);state.xp+=3;render();openPanel("apiary")}
+function treatHive(i){let h=state.hives[i];if(state.money<120)return alert("Léčení stojí 120 Kč.");state.money-=120;h.varroa=clamp(h.varroa-25,0,100);h.health=clamp(h.health+8,0,100);h.risk=clamp(h.risk-5,0,95);log("Provedeno léčení v úlu "+h.name+".");if(!state.quests.firstTreatment){state.quests.firstTreatment=true;state.money+=300;state.xp+=40;log("Splněn úkol: první léčení varroázy. Odměna 300 Kč.")}render();openPanel("apiary")}
+function strengthenHive(i){let h=state.hives[i]; if(!h.colony)return; if(state.food<2)return alert("Na posílení potřebuješ 2 krmiva."); if(state.money<180)return alert("Posílení stojí 180 Kč."); state.food-=2;state.money-=180;h.strength=clamp(h.strength+15,0,100);h.health=clamp(h.health+6,0,100);h.stores=clamp(h.stores+8,0,120);h.risk=clamp(h.risk-8,0,95);log("Posílil jsi včelstvo v úlu "+h.name+".");state.xp+=12;render();openPanel("apiary")}
+function moveFrames(i){let h=state.hives[i], take=Math.min(h.frames,5);if(take<=0)return alert("V úlu zatím nejsou hotové rámky.");let honeyPerFrame=h.frames>0?h.honey/h.frames:0,movedHoney=take*honeyPerFrame;h.frames=clamp(h.frames-take,0,12);h.honey=clamp(h.honey-movedHoney,0,40);state.cappedFrames+=take;state.oldComb+=h.oldComb;h.oldComb=0;log("Do medárny převezeno "+take.toFixed(1)+" rámků ("+kindName(h.honeyKind)+").");state.xp+=8;render();openPanel("apiary")}
+function extractHoney(){if(eq("extractor")<=0)return alert("Nemáš funkční medomet.");if(eq("uncapTable")<=0)return alert("Nemáš odvíčkovací stůl.");if(state.cappedFrames<=0)return alert("V medárně nejsou rámky.");let frames=Math.min(state.cappedFrames,8),gain=frames*.72,wax=frames*.22,kind=kindKeyFromType(dominantCrop().type);state.cappedFrames-=frames;state.honeyTypes[kind]+=gain;state.wax+=wax;state.totalHoney+=gain;state.totalWax+=wax;state.oldComb+=frames*.15;wear("extractor",3);wear("uncapTable",2);state.xp+=Math.round(gain*4);extractorAnim.classList.add("spin");setTimeout(()=>extractorAnim.classList.remove("spin"),1200);log("Vytočeno "+gain.toFixed(1)+" kg: "+kindName(kind)+" med.");render();openPanel("honeyhouse")}
+function fillJars(){let kind=document.getElementById("jarHoneyKind").value;if(state.honeyTypes[kind]<7.5)return alert("Potřebuješ 7.5 kg vybraného medu.");if(state.jarsEmpty<10)return alert("Nemáš 10 prázdných sklenic.");state.honeyTypes[kind]-=7.5;state.jarsEmpty-=10;state.jarsFilled+=10;log("Naplněno 10 sklenic: "+kindName(kind)+" med.");state.xp+=15;render();openPanel("honeyhouse")}
+function meltWax(){if(eq("waxPot")<=0)return alert("Nemáš tavicí nádobu.");if(state.oldComb<1)return alert("Nemáš dost starých souší.");let take=Math.min(state.oldComb,3),gain=take*.65;state.oldComb-=take;state.wax+=gain;state.totalWax+=gain;wear("waxPot",2);log("Vytaveno "+gain.toFixed(2)+" kg vosku.");state.xp+=10;render();openPanel("waxhouse")}
+function makeCandles(){if(eq("candleMold")<=0)return alert("Nemáš formy na svíčky.");if(state.wax<1)return alert("Potřebuješ 1 kg vosku.");state.wax-=1;state.candles+=8;state.totalCandles+=8;wear("candleMold",2);log("Vyrobeno 8 svíček.");state.xp+=18;render();openPanel("waxhouse")}
+function buyHive(){if(state.money<600)return alert("Nedostatek peněz.");state.money-=600;state.hives.push({name:"Úl "+(state.hives.length+1),colony:false,strength:0,health:0,stores:0,varroa:0,swarm:0,honey:0,frames:0,oldComb:0,risk:0,honeyKind:"flower"});log("Koupen nový úl.");render();openPanel("shop")}
+function buyColony(i){if(state.money<800)return alert("Nedostatek peněz.");state.money-=800;Object.assign(state.hives[i],{colony:true,strength:45,health:75,stores:18,varroa:10,swarm:8,honey:0,frames:0,oldComb:0,risk:8,honeyKind:"flower"});log("Osazen oddělek.");render();openPanel("apiary")}
+function buyAnyColony(){let i=state.hives.findIndex(h=>!h.colony);if(i<0)return alert("Nemáš prázdný úl.");buyColony(i);openPanel("shop")}
+function buyFood(){if(state.money<180)return alert("Nedostatek peněz.");state.money-=180;state.food+=10;log("Koupeno krmivo.");render();openPanel("shop")}
+function buyEq(k,price){if(state.money<price)return alert("Nedostatek peněz.");state.money-=price;state.equipment[k]=100;log("Koupeno/vyměněno vybavení.");render();openPanel("shop")}
+function buyEmptyJars(){if(state.money<300)return alert("Nedostatek peněz.");state.money-=300;state.jarsEmpty+=20;log("Koupeno 20 prázdných sklenic.");render();openPanel("shop")}
+function upgradeWater(){if(state.money<400)return alert("Nedostatek peněz.");state.money-=400;state.water++;log("Vylepšeno napajedlo.");render();openPanel("shop")}
+function buyMarketing(){if(state.money<1200)return alert("Nedostatek peněz.");state.money-=1200;state.marketing++;log("Vylepšen marketing.");render();openPanel("shop")}
+function buyHen(){if(state.money<220)return alert("Slepice stojí 220 Kč.");state.money-=220;state.hens++;log("Koupena slepice.");render();openPanel("coop")}
+function buyDuck(){if(state.money<260)return alert("Kachna stojí 260 Kč.");state.money-=260;state.ducks++;log("Koupena kachna.");render();openPanel("coop")}
+function buyGoat(){if(state.money<950)return alert("Koza stojí 950 Kč.");state.money-=950;state.goats++;log("Koupena koza.");render();openPanel("coop")}
+function buySheep(){if(state.money<850)return alert("Ovce stojí 850 Kč.");state.money-=850;state.sheep++;log("Koupena ovce.");render();openPanel("coop")}
+function buyHenFood(){if(state.money<120)return alert("Krmivo stojí 120 Kč.");state.money-=120;state.henFood+=20;log("Koupeno krmivo pro zvířata.");render();openPanel("coop")}
+function useManure(){if(state.manure<10)return alert("Potřebuješ 10 hnoje.");state.manure-=10;state.field++;state.cropField.progress=clamp(state.cropField.progress+2,0,cData(state.cropField).grow);log("Použil jsi hnůj na pole.");render();openPanel("coop")}
+function staffPrice(k){return 2000+state.staff[k]*850}
+function hireStaff(k){let price=staffPrice(k);if(state.money<price)return alert("Zaměstnanec stojí "+price+" Kč.");state.money-=price;state.staff[k]++;log("Najal jsi zaměstnance.");if(!state.quests.firstWorker){state.quests.firstWorker=true;state.money+=500;state.xp+=60;log("Splněn úkol: první zaměstnanec. Odměna 500 Kč.")}render();openPanel("staff")}
+function sellHoneyKind(k){let kg=parseFloat(document.getElementById("sellHoneyKg"+k).value);if(!kg||kg<=0)return;if(kg>state.honeyTypes[k])return alert("Nemáš tolik medu.");let earn=kg*baseHoneyPrice(k);state.honeyTypes[k]-=kg;state.money+=earn;state.totalSold+=earn;state.xp+=Math.round(kg*2);log("Prodáno "+kg+" kg "+kindName(k)+" medu za "+money(earn));render();openPanel("storage")}
+function sellJars(){let c=parseInt(sellJarsCount.value);if(!c||c<=0)return;if(c>state.jarsFilled)return alert("Nemáš tolik plných sklenic.");let earn=c*jarPrice("flower");state.jarsFilled-=c;state.money+=earn;state.totalSold+=earn;state.xp+=c;log("Prodáno "+c+" sklenic za "+money(earn));render();openPanel("storage")}
+function sellWax(){let kg=parseFloat(sellWaxKg.value);if(!kg||kg<=0)return;if(kg>state.wax)return alert("Nemáš tolik vosku.");let earn=kg*waxPrice();state.wax-=kg;state.money+=earn;state.totalSold+=earn;state.xp+=Math.round(kg*3);log("Prodáno "+kg+" kg vosku za "+money(earn));render();openPanel("storage")}
+function sellCandles(){let c=parseInt(sellCandlesCount.value);if(!c||c<=0)return;if(c>state.candles)return alert("Nemáš tolik svíček.");let earn=c*candlePrice();state.candles-=c;state.money+=earn;state.totalSold+=earn;state.xp+=c*2;log("Prodáno "+c+" svíček za "+money(earn));render();openPanel("storage")}
+function sellEggs(){let c=parseInt(sellEggsCount.value);if(!c||c<=0)return;if(c>state.eggs)return alert("Nemáš tolik vajec.");let earn=c*eggPrice();state.eggs-=c;state.money+=earn;state.totalSold+=earn;state.totalEggsSold+=c;state.xp+=Math.ceil(c/2);log("Prodáno "+c+" vajec za "+money(earn));render();openPanel("storage")}
+function sellMilk(){let l=parseFloat(sellMilkLiters.value);if(!l||l<=0)return;if(l>state.milk)return alert("Nemáš tolik mléka.");let earn=l*22;state.milk-=l;state.money+=earn;state.totalSold+=earn;state.xp+=Math.ceil(l);log("Prodáno "+l+" l mléka za "+money(earn));render();openPanel("storage")}
+function sellWool(){let kg=parseFloat(sellWoolKg.value);if(!kg||kg<=0)return;if(kg>state.wool)return alert("Nemáš tolik vlny.");let earn=kg*90;state.wool-=kg;state.money+=earn;state.totalSold+=earn;state.xp+=Math.ceil(kg*2);log("Prodáno "+kg+" kg vlny za "+money(earn));render();openPanel("storage")}
+function checkQuests(){
+ if(!state.quests.honey20&&state.totalHoney>=20){state.quests.honey20=true;state.money+=800;state.xp+=80;log("Splněn úkol: vytoč 20 kg medu.")}
+ if(!state.quests.firstSpecialHoney&&(state.honeyTypes.phacelia+state.honeyTypes.sunflower+state.honeyTypes.buckwheat)>0){state.quests.firstSpecialHoney=true;state.money+=700;state.xp+=70;log("Splněn úkol: první speciální med.")}
+ if(!state.quests.eggs50&&state.totalEggsSold>=50){state.quests.eggs50=true;state.money+=500;state.xp+=60;log("Splněn úkol: prodej 50 vajec.")}
+ if(!state.quests.candles20&&state.totalCandles>=20){state.quests.candles20=true;state.money+=600;state.xp+=70;log("Splněn úkol: vyrob 20 svíček.")}
+ if(!state.quests.hives5&&state.hives.filter(h=>h.colony).length>=5){state.quests.hives5=true;state.money+=1500;state.xp+=120;log("Splněn úkol: 5 osazených úlů.")}
+}
+function exportSave(){const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="vcelarsky-tycoon-4-save.json";a.click()}
+function resetGame(){if(confirm("Začít novou hru?")){localStorage.removeItem("beeTycoon4");location.reload()}}
+const wrap=document.getElementById("wrap"), world=document.getElementById("world");
+wrap.addEventListener("pointerdown",e=>{dragging=true;startX=e.clientX;startY=e.clientY;startPanX=panX;startPanY=panY;wrap.setPointerCapture(e.pointerId)});
+wrap.addEventListener("pointermove",e=>{if(!dragging)return;panX=startPanX+(e.clientX-startX);panY=startPanY+(e.clientY-startY);updateTransform()});
+wrap.addEventListener("pointerup",()=>dragging=false);
+wrap.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.deltaY<0?1.08:.92)},{passive:false});
+homeView();render();
+</script>
+</body>
+</html>
